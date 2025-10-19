@@ -41,8 +41,8 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 
-# Cache (optional - you might want to keep this for deployment)
-# cache/
+# Cache (contains runtime data - don't commit)
+cache/
 
 # Logs
 logs
