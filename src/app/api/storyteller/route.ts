@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { storyCache } from '@/lib/storyCache';
 
 // Lazy initialization of OpenAI client
 let openai: OpenAI | null = null;
@@ -25,12 +26,51 @@ interface StoryChunk {
   has_more: boolean;
 }
 
-// In-memory storage for story sessions (in production, use a database)
-const storySessions = new Map<string, {
-  articleContent: string;
-  chunks: string[];
-  currentChunk: number;
-}>();
+async function extractArticleTitle(url: string, content: string): Promise<string> {
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      },
+      timeout: 5000,
+    });
+
+    const $ = cheerio.load(response.data);
+
+    // Try common title selectors
+    const titleSelectors = [
+      'title',
+      'h1',
+      '[class*="title"]',
+      '[class*="headline"]',
+      'meta[property="og:title"]'
+    ];
+
+    for (const selector of titleSelectors) {
+      let title = '';
+      if (selector === 'meta[property="og:title"]') {
+        title = $(selector).attr('content') || '';
+      } else {
+        title = $(selector).first().text().trim();
+      }
+
+      if (title && title.length > 10 && title.length < 200) {
+        return title;
+      }
+    }
+
+    // Fallback: extract from URL or content
+    const urlParts = url.split('/').filter(p => p.length > 0);
+    const lastPart = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2] || '';
+    const fallbackTitle = lastPart.replace(/-/g, ' ').replace(/\?.*$/, '');
+
+    return fallbackTitle.charAt(0).toUpperCase() + fallbackTitle.slice(1) || 'News Article';
+
+  } catch (error) {
+    console.warn('Failed to extract title:', error);
+    return 'News Article';
+  }
+}
 
 async function fetchArticleContent(url: string): Promise<string> {
   try {
@@ -86,6 +126,10 @@ async function generateStoryChunk(
   chunkNumber: number,
   previousChunks: string[] = []
 ): Promise<string> {
+  // Get previous chunks from cache if available
+  const contextChunks = previousChunks.length > 0 ? previousChunks :
+    (chunkNumber > 1 ? [] : []); // For now, we'll handle context differently
+
   const systemPrompt = `You are storyteller_agent, a narrative AI agent. Your job is to turn a real-world news article into a compelling, human-centered story in the literary style of Leo Tolstoy.
 
 ARTICLE CONTENT:
@@ -99,7 +143,7 @@ INSTRUCTIONS:
 5. Focus on human elements, motivations, and broader implications.
 6. Maintain journalistic integrity while using literary language.
 
-${previousChunks.length > 0 ? `PREVIOUS CHUNKS:\n${previousChunks.join('\n\n')}\n\nContinue the story from here.` : 'This is the beginning of the story.'}
+${contextChunks.length > 0 ? `PREVIOUS CHUNKS:\n${contextChunks.join('\n\n')}\n\nContinue the story from here.` : 'This is the beginning of the story.'}
 
 Generate the narrative chunk in Tolstoy's style.`;
 
@@ -132,49 +176,83 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate session ID if not provided
-    const currentSessionId = sessionId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Check if complete story exists in cache
+    const cachedStory = storyCache.getStory(url);
 
-    let session = storySessions.get(currentSessionId);
+    if (cachedStory && storyCache.hasCompleteStory(url)) {
+      console.log(`Serving chunk ${chunkNumber} from complete cached story for URL: ${url}`);
 
-    // If this is the first chunk or new session, fetch and analyze the article
-    if (!session || chunkNumber === 1) {
-      console.log('Fetching article content...');
-      const articleContent = await fetchArticleContent(url);
+      // Find the requested chunk from the complete cached story
+      const cachedChunk = cachedStory.story_chunks.find(c => c.chunk_number === chunkNumber);
 
-      session = {
-        articleContent,
-        chunks: [],
-        currentChunk: 0
-      };
-      storySessions.set(currentSessionId, session);
+      if (cachedChunk) {
+        return NextResponse.json({
+          ...cachedChunk,
+          sessionId: `cached_${url}_${Date.now()}`,
+          fromCache: true
+        });
+      }
     }
 
-    // Generate the requested chunk
-    console.log(`Generating chunk ${chunkNumber}...`);
-    const chunkContent = await generateStoryChunk(
-      session.articleContent,
-      chunkNumber,
-      session.chunks
-    );
+    // Story not in cache or incomplete, generate the complete story
+    console.log(`Generating complete story for URL: ${url}`);
 
-    // Store the chunk
-    session.chunks.push(chunkContent);
-    session.currentChunk = chunkNumber;
+    // Fetch article content and extract title
+    console.log('Fetching article content...');
+    const articleContent = await fetchArticleContent(url);
+    const title = await extractArticleTitle(url, articleContent);
 
-    // Determine if there are more chunks (simplified logic)
-    const hasMore = chunkNumber < 5; // Maximum 5 chunks
+    // Generate ALL chunks at once to create a complete story
+    const allChunks: StoryChunk[] = [];
+    const maxChunks = 5;
 
-    const response: StoryChunk = {
-      chunk_number: chunkNumber,
-      chunk: chunkContent,
-      has_more: hasMore
-    };
+    for (let i = 1; i <= maxChunks; i++) {
+      try {
+        console.log(`Generating chunk ${i}...`);
 
-    return NextResponse.json({
-      ...response,
-      sessionId: currentSessionId
-    });
+        // Get previous chunks for context (all previously generated chunks in this session)
+        const previousChunks = allChunks.map(c => c.chunk);
+
+        const chunkContent = await generateStoryChunk(articleContent, i, previousChunks);
+
+        const hasMore = i < maxChunks; // Last chunk will have has_more: false
+
+        const newChunk: StoryChunk = {
+          chunk_number: i,
+          chunk: chunkContent,
+          has_more: hasMore
+        };
+
+        allChunks.push(newChunk);
+        console.log(`Generated chunk ${i}, has_more: ${hasMore}`);
+      } catch (error) {
+        console.error(`Error generating chunk ${i}:`, error);
+        // If we have at least one chunk, save what we have and mark as complete
+        if (allChunks.length > 0) {
+          allChunks[allChunks.length - 1].has_more = false;
+          console.log(`Saving partial story with ${allChunks.length} chunks due to error`);
+          break;
+        }
+        throw error;
+      }
+    }
+
+    console.log(`Successfully generated ${allChunks.length} chunks`);    // Cache the complete story
+    console.log(`Caching complete story with ${allChunks.length} chunks`);
+    storyCache.saveStory(url, title, allChunks);
+
+    // Return the requested chunk
+    const requestedChunk = allChunks.find(c => c.chunk_number === chunkNumber);
+
+    if (requestedChunk) {
+      return NextResponse.json({
+        ...requestedChunk,
+        sessionId: `generated_${url}_${Date.now()}`,
+        fromCache: false
+      });
+    } else {
+      throw new Error(`Failed to generate requested chunk ${chunkNumber}`);
+    }
 
   } catch (error) {
     console.error('Storyteller API error:', error);
@@ -187,21 +265,30 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const sessionId = searchParams.get('sessionId');
+  const url = searchParams.get('url');
 
-  if (!sessionId || !storySessions.has(sessionId)) {
+  if (!url) {
     return NextResponse.json(
-      { error: 'Invalid or expired session' },
+      { error: 'Article URL is required' },
+      { status: 400 }
+    );
+  }
+
+  const cachedStory = storyCache.getStory(url);
+
+  if (!cachedStory) {
+    return NextResponse.json(
+      { error: 'Story not found in cache' },
       { status: 404 }
     );
   }
 
-  const session = storySessions.get(sessionId)!;
-
   return NextResponse.json({
-    sessionId,
-    currentChunk: session.currentChunk,
-    totalChunks: session.chunks.length,
-    chunks: session.chunks
+    url,
+    title: cachedStory.title,
+    story_chunks: cachedStory.story_chunks,
+    fromCache: true,
+    created_at: cachedStory.created_at,
+    last_accessed: cachedStory.last_accessed
   });
 }

@@ -8,7 +8,7 @@ interface StoryChunk {
   chunk_number: number;
   chunk: string;
   has_more: boolean;
-  sessionId?: string;
+  fromCache?: boolean;
 }
 
 export default function Storyteller() {
@@ -198,6 +198,11 @@ export default function Storyteller() {
                   <h3 className="text-lg font-semibold text-gray-900">
                     Chapter {chunk.chunk_number}
                   </h3>
+                  {chunk.fromCache && (
+                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                      Cached
+                    </span>
+                  )}
                 </div>
 
                 <div className="prose prose-lg max-w-none">
