@@ -1,6 +1,6 @@
-# Story Scraper - News Aggregation Web Application
+# News Storyteller - Modern News Aggregation Web Application
 
-A modern, full-stack web application that scrapes latest news headlines and articles from The Hindu website, with intelligent caching and a beautiful, responsive user interface.
+A modern, full-stack web application built with Next.js that scrapes latest news headlines and articles from The Hindu website, with intelligent caching and a beautiful, responsive user interface.
 
 ## 🚀 Features
 
@@ -25,44 +25,47 @@ A modern, full-stack web application that scrapes latest news headlines and arti
 ## 🏗️ Architecture
 
 ```
-story-telling-app/
-├── back-end/                 # Express.js Backend
-│   ├── src/
-│   │   ├── hinduScraper.js   # Core scraping logic
-│   │   ├── cacheManager.js   # File-based caching
-│   │   └── newsService.js    # Business logic & scheduling
-│   ├── cache/                # Cache storage directory
-│   ├── server.js             # Express server setup
-│   └── package.json          # Backend dependencies
-│
-└── Front-end/                # Frontend Application
-    ├── css/
-    │   ├── style.css         # Main styles with CSS variables
-    │   └── components.css    # Component-specific styles
-    ├── js/
-    │   ├── config.js         # Configuration constants
-    │   ├── api.js            # API client with retry logic
-    │   ├── ui.js             # UI controller and interactions
-    │   └── app.js            # Main application logic
-    └── index.html            # Main HTML file
+news-storyteller/
+├── src/
+│   ├── app/                    # Next.js App Router
+│   │   ├── api/news/          # API routes for news operations
+│   │   ├── layout.tsx         # Root layout component
+│   │   ├── page.tsx           # Main page component
+│   │   └── globals.css        # Global styles with Tailwind
+│   ├── components/            # React components
+│   │   ├── NewsCard.tsx       # Individual news article card
+│   │   ├── CategoryFilter.tsx # Category filtering component
+│   │   └── NewsGrid.tsx       # Main news display grid
+│   └── lib/                   # Utility libraries
+│       ├── scraper.ts         # Core scraping logic (TypeScript)
+│       ├── cache.ts           # File-based caching system
+│       ├── news-service.ts    # Business logic & scheduling
+│       └── types.ts           # TypeScript type definitions
+├── cache/                     # Cache storage directory (runtime)
+├── public/                    # Static assets (auto-created)
+├── package.json               # Project dependencies
+├── next.config.js             # Next.js configuration
+├── tailwind.config.js         # Tailwind CSS configuration
+└── tsconfig.json              # TypeScript configuration
 ```
 
 ## 🛠️ Technology Stack
 
-### Backend
-- **Node.js**: Runtime environment
-- **Express.js**: Web framework
-- **Cheerio**: Server-side jQuery for HTML parsing
-- **Axios**: HTTP client for web scraping
-- **node-cron**: Task scheduling
-- **fs-extra**: Enhanced file system operations
-- **Morgan**: HTTP request logging
-- **CORS**: Cross-origin resource sharing
+### Frontend & Backend
+- **Next.js 14**: React framework with App Router
+- **React 18**: Modern React with hooks and concurrent features
+- **TypeScript**: Full type safety and better developer experience
+- **Tailwind CSS**: Utility-first CSS framework
 
-### Frontend
-- **Vanilla JavaScript**: No frameworks, pure ES6+
-- **CSS3**: Modern CSS with Grid, Flexbox, and CSS Variables
-- **HTML5**: Semantic markup with accessibility features
+### Scraping & Data
+- **Cheerio**: Server-side HTML parsing
+- **Axios**: HTTP client for web scraping
+- **node-cron**: Task scheduling for automated updates
+- **fs-extra**: Enhanced file system operations
+
+### Development
+- **ESLint**: Code linting and formatting
+- **PostCSS**: CSS processing with Autoprefixer
 
 ## 📋 Prerequisites
 
@@ -71,112 +74,83 @@ story-telling-app/
 
 ## 🚀 Quick Start
 
-### 1. Clone or Download the Repository
+### Prerequisites
+- Node.js 18+ and npm
+- Git
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/gona04/news-storyteller.git
+   cd news-storyteller
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Start development server**
+   ```bash
+   npm run dev
+   ```
+
+4. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+### Build for Production
 
 ```bash
-git clone <repository-url>
-cd story-telling-app
-```
-
-### 2. Install Backend Dependencies
-
-```bash
-cd back-end
-npm install
-```
-
-### 3. Start the Backend Server
-
-```bash
+npm run build
 npm start
 ```
 
-The server will start on `http://localhost:3001` and automatically:
-- Scrape initial news data
-- Set up daily morning refresh schedule
-- Serve the frontend files
+The application will be available at [http://localhost:3000](http://localhost:3000)
 
-### 4. Access the Application
+## � API Endpoints
 
-Open your browser and navigate to:
-```
-http://localhost:3001
-```
+### GET /api/news
+Retrieves cached news articles with optional category filtering.
 
-## 📚 API Documentation
-
-### Base URL
-```
-http://localhost:3001/api
-```
-
-### Endpoints
-
-#### Get News Articles
-```http
-GET /api/news
-```
-Returns latest news articles from cache or scrapes fresh data if cache is empty.
+**Query Parameters:**
+- `category` (optional): Filter by news category (e.g., `?category=politics`)
 
 **Response:**
 ```json
 {
   "success": true,
-  "data": {
-    "lastUpdated": "2025-10-19T08:04:26.003Z",
-    "source": "The Hindu",
-    "totalArticles": 14,
-    "articles": [
-      {
-        "id": "unique-article-id",
-        "title": "Article Title",
-        "url": "https://www.thehindu.com/...",
-        "category": "National",
-        "summary": "Article summary",
-        "imageUrl": "",
-        "publishedAt": "2025-10-19T08:04:25.998Z",
-        "scrapedAt": "2025-10-19T08:04:25.998Z"
-      }
-    ],
-    "fromCache": true,
-    "cacheInfo": {
-      "lastUpdated": "2025-10-19T08:04:26.003Z",
-      "nextRefresh": "2025-10-20T00:30:00.000Z",
-      "articlesCount": 14
+  "data": [
+    {
+      "id": "unique-article-id",
+      "title": "Article Title",
+      "excerpt": "Article excerpt...",
+      "url": "https://www.thehindu.com/...",
+      "category": "politics",
+      "publishedAt": "2024-01-15T10:30:00Z",
+      "imageUrl": "https://...",
+      "author": "Author Name"
     }
+  ],
+  "cacheInfo": {
+    "lastUpdated": "2024-01-15T06:00:00Z",
+    "expiresAt": "2024-01-16T06:00:00Z",
+    "isExpired": false
   }
 }
 ```
 
-#### Force Refresh News
-```http
-POST /api/news/refresh
-```
-Forces a fresh scrape of news data, bypassing cache.
+### POST /api/news
+Forces a refresh of the news cache.
 
-#### Get Cache Status
-```http
-GET /api/cache/status
+**Response:**
+```json
+{
+  "success": true,
+  "message": "News cache refreshed successfully",
+  "data": { /* same as GET response */ }
+}
 ```
-Returns detailed cache information and statistics.
-
-#### Clear Cache
-```http
-DELETE /api/cache
-```
-Clears all cached data.
-
-#### Health Check
-```http
-GET /api/health
-```
-Returns service health status.
-
-#### Service Statistics
-```http
-GET /api/stats
-```
-Returns service usage statistics.
 
 ## ⚙️ Configuration
 
@@ -243,76 +217,68 @@ const CONFIG = {
 ### Project Structure
 
 ```
-back-end/
+news-storyteller/
 ├── src/
-│   ├── hinduScraper.js    # Scraping logic with category extraction
-│   ├── cacheManager.js    # File-based caching with metadata
-│   └── newsService.js     # Service layer with cron scheduling
-├── cache/                 # Cache storage (auto-created)
-├── scripts/               # Utility scripts
-├── test/                  # Test files
-└── server.js              # Express application entry point
-
-Front-end/
-├── css/
-│   ├── style.css         # Main stylesheet with CSS variables
-│   └── components.css    # Component-specific styles
-├── js/
-│   ├── config.js         # Application configuration
-│   ├── api.js            # API client with retry logic
-│   ├── ui.js             # UI controller and DOM manipulation
-│   └── app.js            # Application lifecycle and coordination
-└── index.html            # Main HTML template
+│   ├── app/                    # Next.js App Router pages and API routes
+│   │   ├── api/news/          # API routes for news operations
+│   │   ├── layout.tsx         # Root layout component
+│   │   ├── page.tsx           # Main page component
+│   │   └── globals.css        # Global styles with Tailwind
+│   ├── components/            # React components
+│   │   ├── NewsCard.tsx       # Individual news article card
+│   │   ├── CategoryFilter.tsx # Category filtering component
+│   │   └── NewsGrid.tsx       # Main news display grid
+│   └── lib/                   # Utility libraries
+│       ├── scraper.ts         # Core scraping logic (TypeScript)
+│       ├── cache.ts           # File-based caching system
+│       ├── news-service.ts    # Business logic & scheduling
+│       └── types.ts           # TypeScript type definitions
+├── cache/                     # Cache storage directory (runtime)
+├── public/                    # Static assets (auto-created)
+├── package.json               # Project dependencies
+├── next.config.js             # Next.js configuration
+├── tailwind.config.js         # Tailwind CSS configuration
+└── tsconfig.json              # TypeScript configuration
 ```
 
 ### Key Components
 
-#### Backend Components
+#### Core Libraries
 
-1. **hinduScraper.js**: Core scraping functionality
+1. **scraper.ts**: Core scraping functionality
    - Scrapes headlines from The Hindu
    - Extracts categories and metadata
    - Handles duplicate removal
    - Generates unique article IDs
 
-2. **cacheManager.js**: File-based caching system
+2. **cache.ts**: File-based caching system
    - Stores news data in JSON files
    - Manages cache expiration
    - Provides cache statistics
    - Handles cache cleanup
 
-3. **newsService.js**: Business logic layer
+3. **news-service.ts**: Business logic layer
    - Coordinates scraping and caching
    - Manages cron job scheduling
    - Provides high-level API for news operations
    - Handles error recovery
 
-#### Frontend Components
+#### React Components
 
-1. **config.js**: Configuration management
-   - API endpoints and settings
-   - UI preferences and defaults
-   - Feature flags
-   - Error messages and constants
+1. **NewsCard.tsx**: Individual news article display
+   - Responsive card design with hover effects
+   - Category badges and time formatting
+   - Clean typography and layout
 
-2. **api.js**: HTTP client and service layer
-   - API communication with retry logic
-   - Local caching for performance
-   - Error handling and timeout management
-   - Request/response transformation
+2. **CategoryFilter.tsx**: Category selection interface
+   - Button-based filtering with active states
+   - Article count display
+   - Responsive layout
 
-3. **ui.js**: User interface controller
-   - DOM manipulation and event handling
-   - News card rendering and animations
-   - Modal management
-   - Toast notifications
-   - Keyboard shortcuts
-
-4. **app.js**: Application coordination
-   - Lifecycle management
-   - Service initialization
-   - Global error handling
-   - Performance monitoring
+3. **NewsGrid.tsx**: Main news container
+   - Grid layout with loading states
+   - Error handling and refresh functionality
+   - Cache status display
 
 ### Adding New Features
 
