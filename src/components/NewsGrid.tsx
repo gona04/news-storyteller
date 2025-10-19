@@ -123,10 +123,26 @@ export default function NewsGrid({ initialData }: NewsGridProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">The Hindu News</h1>
-              <p className="text-gray-600 mt-1">Latest headlines and articles</p>
+              <h1 className="text-3xl font-bold text-gray-900">News Storyteller</h1>
+              <p className="text-gray-600 mt-1">Latest headlines and literary narratives</p>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Navigation */}
+              <nav className="flex space-x-4">
+                <a
+                  href="/"
+                  className="text-blue-600 hover:text-blue-800 font-medium border-b-2 border-blue-600"
+                >
+                  News Feed
+                </a>
+                <a
+                  href="/storyteller"
+                  className="text-gray-700 hover:text-blue-600 font-medium"
+                >
+                  Literary Stories
+                </a>
+              </nav>
+
               {/* Refresh button */}
               <button
                 onClick={handleRefresh}

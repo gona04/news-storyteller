@@ -1,4 +1,5 @@
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import type { NewsArticle } from '@/lib/types';
 
 interface NewsCardProps {
@@ -6,6 +7,8 @@ interface NewsCardProps {
 }
 
 export default function NewsCard({ article }: NewsCardProps) {
+  const router = useRouter();
+
   // Format the published date to 12-hour format
   const formatDate = (dateString: string) => {
     try {
@@ -23,8 +26,17 @@ export default function NewsCard({ article }: NewsCardProps) {
     }
   };
 
+  const handleCardClick = () => {
+    // Navigate to storyteller page with the article URL as a query parameter
+    const encodedUrl = encodeURIComponent(article.url);
+    router.push(`/storyteller?url=${encodedUrl}`);
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-6 border border-gray-200">
+    <div
+      className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-6 border border-gray-200 cursor-pointer"
+      onClick={handleCardClick}
+    >
       <div className="flex flex-col space-y-3">
         {/* Category Badge */}
         <div className="flex items-center justify-between">
@@ -37,7 +49,7 @@ export default function NewsCard({ article }: NewsCardProps) {
         </div>
 
         {/* Title */}
-        <h3 className="text-lg font-semibold text-gray-900 leading-tight line-clamp-3 hover:text-blue-600 transition-colors cursor-pointer">
+        <h3 className="text-lg font-semibold text-gray-900 leading-tight line-clamp-3 hover:text-blue-600 transition-colors">
           {article.title}
         </h3>
 
@@ -55,6 +67,13 @@ export default function NewsCard({ article }: NewsCardProps) {
           </span>
           <span className="text-xs text-gray-400">
             {formatDate(article.scrapedAt)}
+          </span>
+        </div>
+
+        {/* Storyteller hint */}
+        <div className="flex items-center justify-center pt-2 border-t border-gray-100">
+          <span className="text-xs text-blue-600 font-medium flex items-center gap-1">
+            📖 Click to transform into literary narrative
           </span>
         </div>
       </div>
