@@ -135,28 +135,6 @@ export default function NewsGrid({ initialData }: NewsGridProps) {
               </div>
             </div>
             <div className="flex items-center space-x-6">
-              {/* Navigation */}
-              <nav className="hidden sm:flex space-x-8">
-                <a
-                  href="/"
-                  className="text-gray-700 hover:text-gray-900 font-medium text-sm"
-                >
-                  Stories
-                </a>
-                <a
-                  href="#categories"
-                  className="text-gray-700 hover:text-gray-900 font-medium text-sm"
-                >
-                  Categories
-                </a>
-                <a
-                  href="#about"
-                  className="text-gray-700 hover:text-gray-900 font-medium text-sm"
-                >
-                  About
-                </a>
-              </nav>
-
               {/* Refresh button */}
               <button
                 onClick={handleRefresh}
@@ -186,14 +164,6 @@ export default function NewsGrid({ initialData }: NewsGridProps) {
             Discover the most compelling news stories, beautifully presented and thoughtfully curated.
           </p>
         </div>
-
-        {/* Category filter */}
-        <CategoryFilter
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onCategoryChange={handleCategoryChange}
-          articleCounts={articleCounts}
-        />
 
         {/* Error message */}
         {error && (
