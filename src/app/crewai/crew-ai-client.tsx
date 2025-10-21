@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Loader, Copy, Check, Sparkles } from 'lucide-react';
+import { Loader, Copy, Check, Sparkles, Volume2, Pause, Play } from 'lucide-react';
 
 interface CrewAIResult {
   success: boolean;
@@ -21,6 +21,9 @@ export default function CrewAIPage() {
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const [autoStarted, setAutoStarted] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
 
   // Check for URL parameter on component mount
   useEffect(() => {
@@ -79,6 +82,91 @@ export default function CrewAIPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
+  };
+
+  const generateAndPlayAudio = async () => {
+    if (!result) return;
+
+    try {
+      setIsGeneratingAudio(true);
+      setError('');
+
+      // Call TTS API
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: result.tolstoy_narration,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate speech');
+      }
+
+      const data = await response.json();
+
+      // Play audio
+      setTimeout(() => {
+        const audio = new Audio(data.audio);
+        audio.play();
+        setIsSpeaking(true);
+
+        audio.onended = () => {
+          setIsSpeaking(false);
+          setIsPaused(false);
+        };
+
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          setError('Error playing audio');
+        };
+
+        // Store reference for pause/resume
+        (window as any).currentAudio = audio;
+      }, 100);
+    } catch (err) {
+      console.error('TTS Error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to generate speech');
+      setIsGeneratingAudio(false);
+    } finally {
+      setIsGeneratingAudio(false);
+    }
+  };
+
+  const handlePlayAudio = async () => {
+    if (isGeneratingAudio) return;
+
+    if (isSpeaking) {
+      // Pause/Resume logic
+      const audio = (window as any).currentAudio;
+      if (audio) {
+        if (isPaused) {
+          audio.play();
+          setIsPaused(false);
+        } else {
+          audio.pause();
+          setIsPaused(true);
+        }
+      }
+      return;
+    }
+
+    // Start playing
+    await generateAndPlayAudio();
+  };
+
+  const handleStopAudio = () => {
+    const audio = (window as any).currentAudio;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+    setIsSpeaking(false);
+    setIsPaused(false);
   };
 
   return (
@@ -199,17 +287,62 @@ export default function CrewAIPage() {
                   <Sparkles className="w-5 h-5 text-green-600" />
                   Tolstoy's Narrative
                 </h3>
-                <button
-                  onClick={handleCopy}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-700"
-                  title="Copy to clipboard"
-                >
-                  {copied ? (
-                    <Check className="w-5 h-5 text-green-600" />
+                <div className="flex items-center gap-2">
+                  {/* Voice Over Button */}
+                  {isGeneratingAudio ? (
+                    <button
+                      disabled
+                      className="p-2 rounded-lg transition text-gray-400 cursor-not-allowed"
+                      title="Generating audio..."
+                    >
+                      <Loader className="w-5 h-5 animate-spin" />
+                    </button>
+                  ) : isSpeaking ? (
+                    <button
+                      onClick={() => handlePlayAudio()}
+                      className="p-2 hover:bg-red-50 rounded-lg transition text-red-600"
+                      title={isPaused ? "Resume reading" : "Pause reading"}
+                    >
+                      {isPaused ? (
+                        <Play className="w-5 h-5" />
+                      ) : (
+                        <Pause className="w-5 h-5" />
+                      )}
+                    </button>
                   ) : (
-                    <Copy className="w-5 h-5" />
+                    <button
+                      onClick={handlePlayAudio}
+                      className="p-2 hover:bg-green-50 rounded-lg transition text-green-600"
+                      title="Read aloud with natural voice"
+                    >
+                      <Volume2 className="w-5 h-5" />
+                    </button>
                   )}
-                </button>
+                  
+                  {/* Stop Button (visible when speaking) */}
+                  {isSpeaking && (
+                    <button
+                      onClick={handleStopAudio}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-700 text-xs"
+                      title="Stop reading"
+                    >
+                      ✕
+                    </button>
+                  )}
+                  
+                  {/* Copy Button */}
+                  <button
+                    onClick={handleCopy}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-700"
+                    title="Copy to clipboard"
+                  >
+                    {copied ? (
+                      <Check className="w-5 h-5 text-green-600" />
+                    ) : (
+                      <Copy className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div className="prose prose-sm max-w-none">
@@ -221,6 +354,25 @@ export default function CrewAIPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Voice Over Status Indicator */}
+              {isSpeaking && (
+                <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
+                  <div className="flex gap-1">
+                    <div className="w-1 h-4 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                    <div className="w-1 h-4 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-1 h-4 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                  </div>
+                  <div>
+                    <p className="text-green-700 text-sm font-medium">
+                      {isPaused ? '⏸️ Paused' : '🎧 Playing with Guy\'s voice'}
+                    </p>
+                    <p className="text-green-600 text-xs mt-0.5">
+                      American Male Voice
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="bg-gray-100 border border-gray-200 rounded-lg p-4 text-center">
