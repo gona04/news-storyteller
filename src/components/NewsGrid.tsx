@@ -86,10 +86,12 @@ export default function NewsGrid({ initialData }: NewsGridProps) {
 
   if (loading && !newsData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading latest news...</p>
+          <div className="inline-block relative w-16 h-16 mb-4">
+            <div className="absolute inset-0 border-4 border-gray-200 border-t-green-600 rounded-full animate-spin"></div>
+          </div>
+          <p className="text-gray-600 text-lg">Loading latest news...</p>
         </div>
       </div>
     );
@@ -97,14 +99,14 @@ export default function NewsGrid({ initialData }: NewsGridProps) {
 
   if (error && !newsData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center max-w-md">
           <div className="text-red-500 text-6xl mb-4">⚠️</div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Failed to Load News</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Failed to Load News</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
           <button
             onClick={() => fetchNews()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-full transition-all duration-200 font-medium"
           >
             Try Again
           </button>
@@ -119,27 +121,39 @@ export default function NewsGrid({ initialData }: NewsGridProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">News Storyteller</h1>
-              <p className="text-gray-600 mt-1">Latest headlines and literary narratives</p>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-600 text-white rounded-lg flex items-center justify-center font-bold text-lg">
+                NS
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  News <span className="font-normal">Storyteller</span>
+                </h1>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-6">
               {/* Navigation */}
-              <nav className="flex space-x-4">
+              <nav className="hidden sm:flex space-x-8">
                 <a
                   href="/"
-                  className="text-blue-600 hover:text-blue-800 font-medium border-b-2 border-blue-600"
+                  className="text-gray-700 hover:text-gray-900 font-medium text-sm"
                 >
-                  News Feed
+                  Stories
                 </a>
                 <a
-                  href="/storyteller"
-                  className="text-gray-700 hover:text-blue-600 font-medium"
+                  href="#categories"
+                  className="text-gray-700 hover:text-gray-900 font-medium text-sm"
                 >
-                  Literary Stories
+                  Categories
+                </a>
+                <a
+                  href="#about"
+                  className="text-gray-700 hover:text-gray-900 font-medium text-sm"
+                >
+                  About
                 </a>
               </nav>
 
@@ -147,32 +161,32 @@ export default function NewsGrid({ initialData }: NewsGridProps) {
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 font-medium text-sm"
               >
                 {refreshing ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
                 ) : (
                   <span>🔄</span>
                 )}
-                <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
+                <span className="hidden sm:inline">{refreshing ? 'Refreshing...' : 'Refresh'}</span>
               </button>
-
-              {/* Cache info */}
-              {cacheInfo && (
-                <div className="text-sm text-gray-500">
-                  <div>Last updated: {new Date(cacheInfo.lastUpdated).toLocaleString()}</div>
-                  {cacheInfo.nextRefresh && (
-                    <div>Next refresh: {new Date(cacheInfo.nextRefresh).toLocaleString()}</div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>
       </header>
 
       {/* Main content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        {/* Hero Section */}
+        <div className="mb-16">
+          <h2 className="text-5xl sm:text-6xl font-bold text-gray-900 mb-4">
+            Stories from <span className="text-green-600">Today</span>
+          </h2>
+          <p className="text-gray-600 text-lg max-w-2xl">
+            Discover the most compelling news stories, beautifully presented and thoughtfully curated.
+          </p>
+        </div>
+
         {/* Category filter */}
         <CategoryFilter
           categories={categories}
@@ -185,7 +199,7 @@ export default function NewsGrid({ initialData }: NewsGridProps) {
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <div className="flex items-center">
-              <span className="text-red-500 mr-2">⚠️</span>
+              <span className="text-red-600 mr-3 text-lg">⚠️</span>
               <p className="text-red-700">{error}</p>
             </div>
           </div>
@@ -193,8 +207,10 @@ export default function NewsGrid({ initialData }: NewsGridProps) {
 
         {/* Loading indicator */}
         {loading && (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <div className="text-center py-12">
+            <div className="inline-block relative w-12 h-12 mb-3">
+              <div className="absolute inset-0 border-4 border-gray-200 border-t-green-600 rounded-full animate-spin"></div>
+            </div>
             <p className="text-gray-600">Loading articles...</p>
           </div>
         )}
@@ -207,24 +223,23 @@ export default function NewsGrid({ initialData }: NewsGridProps) {
             ))}
           </div>
         ) : !loading && (
-          <div className="text-center py-12">
+          <div className="text-center py-16">
             <div className="text-gray-400 text-6xl mb-4">📰</div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Articles Found</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">No stories found in this category.</h3>
             <p className="text-gray-600">
               {selectedCategory === 'All'
-                ? 'No news articles are currently available.'
-                : `No articles found in the ${selectedCategory} category.`
+                ? 'Check back soon for more stories.'
+                : `Try a different category to explore more stories.`
               }
             </p>
           </div>
         )}
 
         {/* Footer */}
-        <footer className="mt-12 text-center text-gray-500 text-sm">
+        <footer className="mt-16 pt-8 border-t border-gray-200 text-center text-gray-600 text-sm">
           <p>
-            Data sourced from The Hindu •
-            Auto-refreshes daily at 6:00 AM •
-            {newsData?.data?.fromCache && ' (Showing cached data)'}
+            📰 Data sourced from The Hindu • ⏰ Auto-refreshes daily at 6:00 AM
+            {newsData?.data?.fromCache && ' • 💾 Showing cached data'}
           </p>
         </footer>
       </main>

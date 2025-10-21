@@ -1,0 +1,21 @@
+{
+  "stories": {
+    "https://example.com/test-article": {
+      "title": "Test Article Title",
+      "story_chunks": [
+        {
+          "chunk_number": 1,
+          "chunk": "This is the first chunk of the story.",
+          "has_more": true
+        },
+        {
+          "chunk_number": 2,
+          "chunk": "This is the second chunk of the story.",
+          "has_more": false
+        }
+      ],
+      "created_at": "2025-10-21T10:59:31.368Z",
+      "last_accessed": "2025-10-21T10:59:31.374Z"
+    }
+  }
+}

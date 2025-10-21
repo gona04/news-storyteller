@@ -27,9 +27,9 @@ export default function NewsCard({ article }: NewsCardProps) {
   };
 
   const handleCardClick = () => {
-    // Navigate to storyteller page with the article URL as a query parameter
+    // Navigate to Crew AI page with the article URL as a query parameter
     const encodedUrl = encodeURIComponent(article.url);
-    router.push(`/storyteller?url=${encodedUrl}`);
+    router.push(`/crewai?news_link=${encodedUrl}`);
   };
 
   return (
@@ -49,7 +49,7 @@ export default function NewsCard({ article }: NewsCardProps) {
         </div>
 
         {/* Title */}
-        <h3 className="text-lg font-semibold text-gray-900 leading-tight line-clamp-3 hover:text-blue-600 transition-colors">
+        <h3 className="text-lg font-semibold text-gray-900 leading-tight line-clamp-3 hover:text-green-600 transition-colors">
           {article.title}
         </h3>
 
@@ -72,8 +72,8 @@ export default function NewsCard({ article }: NewsCardProps) {
 
         {/* Storyteller hint */}
         <div className="flex items-center justify-center pt-2 border-t border-gray-100">
-          <span className="text-xs text-blue-600 font-medium flex items-center gap-1">
-            📖 Click to transform into literary narrative
+          <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+            ✨ Click to transform with Crew AI
           </span>
         </div>
       </div>

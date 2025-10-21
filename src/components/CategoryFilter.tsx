@@ -17,8 +17,8 @@ export default function CategoryFilter({
   articleCounts = {}
 }: CategoryFilterProps) {
   return (
-    <div className="mb-8">
-      <div className="flex flex-wrap gap-2 justify-center">
+    <div className="mb-12">
+      <div className="flex flex-wrap gap-3 justify-center px-4 py-6">
         {categories.map((category) => {
           const count = articleCounts[category] || 0;
           const isSelected = selectedCategory === category;
@@ -27,37 +27,21 @@ export default function CategoryFilter({
             <button
               key={category}
               onClick={() => onCategoryChange(category)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center space-x-2 ${
+              className={`px-6 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${
                 isSelected
-                  ? 'bg-blue-600 text-white shadow-md transform scale-105'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm'
+                  ? 'bg-green-600 text-white shadow-md'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
               <span>{category}</span>
               {count > 0 && (
-                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  isSelected
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-300 text-gray-600'
-                }`}>
-                  {count}
+                <span className="ml-2 text-xs opacity-75">
+                  ({count})
                 </span>
               )}
             </button>
           );
         })}
-      </div>
-
-      {/* Selected category indicator */}
-      <div className="text-center mt-4">
-        <p className="text-sm text-gray-600">
-          Showing articles from: <span className="font-semibold text-blue-600">{selectedCategory}</span>
-          {articleCounts[selectedCategory] && (
-            <span className="ml-1">
-              ({articleCounts[selectedCategory]} articles)
-            </span>
-          )}
-        </p>
       </div>
     </div>
   );
