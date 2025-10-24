@@ -1,4 +1,4 @@
-import HinduScraper from './scraper';
+import ABCNewsScraper from './scraper';
 import CacheManager from './cache';
 import cron from 'node-cron';
 import type { ScrapedNewsData, NewsData, CacheInfo } from './types';
@@ -7,7 +7,7 @@ import type { ScrapedNewsData, NewsData, CacheInfo } from './types';
  * News Service - Manages news scraping, caching, and scheduling
  */
 class NewsService {
-  private scraper: HinduScraper;
+  private scraper: ABCNewsScraper;
   private cache: CacheManager;
   private isScrapingInProgress: boolean;
   private scheduledJobs: Array<{
@@ -23,7 +23,7 @@ class NewsService {
     cacheMaxAge?: number;
     autoSchedule?: boolean;
   } = {}) {
-    this.scraper = new HinduScraper();
+    this.scraper = new ABCNewsScraper();
     this.cache = new CacheManager({
       maxAge: options.cacheMaxAge || 24 * 60 * 60 * 1000 // 24 hours
     });

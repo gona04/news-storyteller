@@ -283,7 +283,7 @@ export default function CrewAIPage() {
 
             <div className="bg-white rounded-lg shadow-md p-6 sm:p-8 border border-gray-200">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-green-600" />
                   Tolstoy's Narrative
                 </h3>

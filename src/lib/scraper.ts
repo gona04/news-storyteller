@@ -3,17 +3,17 @@ import * as cheerio from 'cheerio';
 import type { NewsArticle } from './types';
 
 /**
- * The Hindu News Scraper
- * Scrapes latest news headlines and articles from The Hindu website
+ * ABC News Scraper
+ * Scrapes latest news headlines and articles from ABC News website
  */
-class HinduScraper {
-  private baseUrl = 'https://www.thehindu.com';
+class ABCNewsScraper {
+  private baseUrl = 'https://abcnews.go.com';
   private timeout = 30000;
   private userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
-  private maxArticles = 50;
+  private maxArticles = 500;  // Increased to get articles from all 9 categories (~50-80 per category)
 
   /**
-   * Scrape latest news from The Hindu homepage
+   * Scrape latest news from ABC News homepage and category pages
    */
   async scrapeLatestNews(): Promise<{
     source: string;
@@ -22,58 +22,80 @@ class HinduScraper {
     articles: NewsArticle[];
   }> {
     try {
-      console.log('🗞️ Scraping latest news from The Hindu...');
+      console.log('🗞️ Scraping latest news from ABC News across multiple categories...');
 
-      const { data: html } = await axios.get(this.baseUrl, {
-        timeout: this.timeout,
-        headers: {
-          'User-Agent': this.userAgent,
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
-          'Accept-Encoding': 'gzip, deflate',
-          'Connection': 'keep-alive'
-        }
-      });
-
-      const $ = cheerio.load(html);
       const articles: NewsArticle[] = [];
 
-      // Scrape from main news sections
-      this.scrapeMainHeadlines($, articles);
-      this.scrapeLatestNewsSection($, articles);
-      this.scrapeSectionNews($, articles);
+      // Category pages to scrape
+      const categoryPages = [
+        { url: this.baseUrl, name: 'General' },
+        { url: `${this.baseUrl}/us`, name: 'US' },
+        { url: `${this.baseUrl}/international`, name: 'International' },
+        { url: `${this.baseUrl}/politics`, name: 'Politics' },
+        { url: `${this.baseUrl}/business`, name: 'Business' },
+        { url: `${this.baseUrl}/technology`, name: 'Technology' },
+        { url: `${this.baseUrl}/sports`, name: 'Sports' },
+        { url: `${this.baseUrl}/entertainment`, name: 'Entertainment' },
+        { url: `${this.baseUrl}/health`, name: 'Health' }
+      ];
+
+      // Scrape each category page
+      for (const page of categoryPages) {
+        try {
+          console.log(`📰 Scraping ${page.name}...`);
+          const { data: html } = await axios.get(page.url, {
+            timeout: this.timeout,
+            headers: {
+              'User-Agent': this.userAgent,
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+              'Accept-Language': 'en-US,en;q=0.5',
+              'Accept-Encoding': 'gzip, deflate',
+              'Connection': 'keep-alive'
+            }
+          });
+
+          const $ = cheerio.load(html);
+          this.scrapeMainHeadlines($, articles, page.name);
+          this.scrapeNewsLinks($, articles, page.name);
+        } catch (categoryError) {
+          console.warn(`⚠️ Failed to scrape ${page.name}:`, categoryError instanceof Error ? categoryError.message : 'Unknown error');
+          // Continue to next category if one fails
+        }
+      }
 
       // Remove duplicates and limit results
       const uniqueArticles = this.removeDuplicates(articles);
       const limitedArticles = uniqueArticles.slice(0, this.maxArticles);
 
-      console.log(`✅ Successfully scraped ${limitedArticles.length} articles from The Hindu`);
+      console.log(`✅ Successfully scraped ${limitedArticles.length} articles from ABC News`);
 
       return {
-        source: 'The Hindu',
+        source: 'ABC News',
         scrapedAt: new Date().toISOString(),
         totalArticles: limitedArticles.length,
         articles: limitedArticles
       };
 
     } catch (error) {
-      console.error('❌ Error scraping The Hindu:', error);
-      throw new Error(`Failed to scrape The Hindu: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('❌ Error scraping ABC News:', error);
+      throw new Error(`Failed to scrape ABC News: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   /**
-   * Scrape main headlines from homepage
+   * Scrape main headlines from main content area
    */
-  private scrapeMainHeadlines($: cheerio.Root, articles: NewsArticle[]) {
+  private scrapeMainHeadlines($: cheerio.Root, articles: NewsArticle[], sourceCategory: string = 'General') {
+    // Target article headlines - excluding navigation
     $('h1 a, h2 a, h3 a').each((_, element) => {
       const $element = $(element);
       const title = $element.text().trim();
       const relativeUrl = $element.attr('href');
 
-      if (title && relativeUrl && title.length > 20) {
+      if (title && relativeUrl && title.length > 15 && this.isValidNewsUrl(relativeUrl) && this.isValidTitle(title)) {
         const fullUrl = this.buildFullUrl(relativeUrl);
-        const category = this.extractCategoryFromUrl(relativeUrl);
+        // Use sourceCategory from the page being scraped
+        const category = sourceCategory;
 
         articles.push({
           id: this.generateId(title),
@@ -90,63 +112,139 @@ class HinduScraper {
   }
 
   /**
-   * Scrape from latest news section
+   * Scrape news links from main content area (excluding navigation)
    */
-  private scrapeLatestNewsSection($: cheerio.Root, articles: NewsArticle[]) {
-    $('div[data-ga-label="Latest News"] ul.timeline li').each((_, element) => {
-      const $element = $(element);
-      const $link = $element.find('a');
-      const title = $link.text().trim();
-      const relativeUrl = $link.attr('href');
-      const timeElement = $element.find('.timePublished');
-      const publishedTime = timeElement.attr('data-published') || '';
-
-      if (title && relativeUrl && title.length > 15) {
-        const fullUrl = this.buildFullUrl(relativeUrl);
-        const category = this.extractCategoryFromUrl(relativeUrl);
-
-        articles.push({
-          id: this.generateId(title),
-          title: this.cleanTitle(title),
-          url: fullUrl,
-          category,
-          summary: '',
-          imageUrl: '',
-          publishedAt: publishedTime || new Date().toISOString(),
-          scrapedAt: new Date().toISOString()
-        });
-      }
-    });
+  private scrapeNewsLinks($: cheerio.Root, articles: NewsArticle[], sourceCategory: string = 'General') {
+    // Focus on main content area and article containers - exclude nav
+    const mainContent = $('main, [role="main"], .main-content, article, .article');
+    
+    if (mainContent.length > 0) {
+      mainContent.find('a').each((_, element) => {
+        this.processArticleLink($, element, articles, sourceCategory);
+      });
+    } else {
+      // Fallback: scrape specific article patterns while avoiding navigation
+      $('div[class*="story"] a, div[class*="article"] a, a[href*="/news/"], a[href*="/story"]').each((_, element) => {
+        this.processArticleLink($, element, articles, sourceCategory);
+      });
+    }
   }
 
   /**
-   * Scrape from different news sections
+   * Check if URL is a valid news article URL (not navigation/menu)
    */
-  private scrapeSectionNews($: cheerio.Root, articles: NewsArticle[]) {
-    $('.story-card, .story-card120, .story-card300').each((_, element) => {
-      const $element = $(element);
-      const $link = $element.find('a');
-      const title = $link.find('h3, h2, h1').text().trim() || $link.text().trim();
-      const relativeUrl = $link.attr('href');
-      const $img = $element.find('img');
-      const imageUrl = $img.attr('src') || '';
+  private isValidNewsUrl(url: string): boolean {
+    // Avoid common navigation/menu patterns
+    if (!url) return false;
+    
+    const invalidPatterns = [
+      '/alerts/',
+      '/live-coverage/',
+      '#',
+      'javascript:',
+      '/search',
+      '/notify',
+      '/about',
+      '/contact',
+      '/help',
+      '/terms',
+      '/privacy'
+    ];
 
-      if (title && relativeUrl && title.length > 15) {
-        const fullUrl = this.buildFullUrl(relativeUrl);
-        const category = this.extractCategoryFromUrl(relativeUrl);
-
-        articles.push({
-          id: this.generateId(title),
-          title: this.cleanTitle(title),
-          url: fullUrl,
-          category,
-          summary: '',
-          imageUrl: imageUrl ? this.buildFullUrl(imageUrl) : '',
-          publishedAt: new Date().toISOString(),
-          scrapedAt: new Date().toISOString()
-        });
+    for (const pattern of invalidPatterns) {
+      if (url.includes(pattern)) {
+        return false;
       }
-    });
+    }
+
+    // Valid news URL patterns
+    const validPatterns = [
+      '/news/',
+      '/story/',
+      '/wireStory/',
+      '/us/',
+      '/international/',
+      '/politics/',
+      '/business/',
+      '/technology/',
+      '/sports/',
+      '/entertainment/',
+      '/health/',
+      '/GMA/',
+      '/abc-news-live/'
+    ];
+
+    return validPatterns.some(pattern => url.includes(pattern));
+  }
+
+  /**
+   * Check if title is valid news content (not meta/captions)
+   */
+  private isValidTitle(title: string): boolean {
+    // Exclude specific known credit/publication names
+    const excludedTitles = [
+      'The Associated Press',
+      'Associated Press',
+      'Getty Images',
+      'AP',
+      'Reuters',
+      'Bloomberg',
+      'CNBC'
+    ];
+
+    if (excludedTitles.includes(title)) {
+      return false;
+    }
+
+    // Exclude image credits and captions  
+    const excludePatterns = [
+      /^courtesy of/i,
+      /^courtesy /i,
+      /^credit:/i,
+      /^photo:/i,
+      /^image:/i,
+      /^getty/i,
+      /^associated press/i,
+      /^ap photo/i,
+      /^screenshot/i,
+      /^composite/i,
+      /^alt:/i,
+      /^[a-z\s]*\/[a-z\s]*$/i,  // Pattern like "Sony Salzman/ABC News" or "Name/Publication"
+      /^[A-Z][a-z]*\s[A-Z][a-z]*\/[A-Z]/  // "First Last/Publisher" pattern
+    ];
+
+    // Check length - skip very short titles that might be meta
+    if (title.length < 20) {
+      return false;
+    }
+
+    return !excludePatterns.some(pattern => pattern.test(title));
+  }
+
+  /**
+   * Helper to process individual article links
+   */
+  private processArticleLink($: cheerio.Root, element: any, articles: NewsArticle[], sourceCategory: string): void {
+    const $element = $(element);
+    const title = $element.text().trim();
+    const relativeUrl = $element.attr('href');
+
+    if (title && relativeUrl && title.length > 15 && !articles.some(a => a.title === title) && this.isValidNewsUrl(relativeUrl) && this.isValidTitle(title)) {
+      const fullUrl = this.buildFullUrl(relativeUrl);
+      // Use sourceCategory from the page being scraped
+      const category = sourceCategory;
+
+      articles.push({
+        id: this.generateId(title),
+        title: this.cleanTitle(title),
+        url: fullUrl,
+        category,
+        summary: '',
+        imageUrl: '',
+        publishedAt: new Date().toISOString(),
+        scrapedAt: new Date().toISOString()
+      });
+    }
   }
 
   /**
@@ -167,17 +265,17 @@ class HinduScraper {
     if (!url) return 'General';
 
     const categoryMap: Record<string, string> = {
-      'news/national': 'National',
-      'news/international': 'International',
-      'news/cities': 'Cities',
-      'sport': 'Sports',
-      'business': 'Business',
-      'opinion': 'Opinion',
-      'entertainment': 'Entertainment',
-      'sci-tech': 'Technology',
-      'society': 'Society',
-      'education': 'Education',
-      'health': 'Health'
+      '/us': 'National',
+      '/international': 'International',
+      '/politics': 'Politics',
+      '/business': 'Business',
+      '/technology': 'Technology',
+      '/sports': 'Sports',
+      '/entertainment': 'Entertainment',
+      '/health': 'Health',
+      '/science': 'Science',
+      '/lifestyle': 'Lifestyle',
+      '/world': 'International'
     };
 
     for (const [urlPattern, category] of Object.entries(categoryMap)) {
@@ -213,19 +311,27 @@ class HinduScraper {
   }
 
   /**
-   * Remove duplicate articles based on title similarity
+   * Remove duplicate articles based on title similarity, keeping the most specific category
    */
   private removeDuplicates(articles: NewsArticle[]): NewsArticle[] {
-    const seen = new Set<string>();
-    return articles.filter(article => {
+    const articleMap = new Map<string, NewsArticle>();
+    
+    for (const article of articles) {
       const normalizedTitle = article.title.toLowerCase().replace(/\s+/g, ' ');
-      if (seen.has(normalizedTitle)) {
-        return false;
+      
+      if (articleMap.has(normalizedTitle)) {
+        const existing = articleMap.get(normalizedTitle)!;
+        // Keep the article with the more specific category (not General)
+        if (article.category !== 'General' && existing.category === 'General') {
+          articleMap.set(normalizedTitle, article);
+        }
+      } else {
+        articleMap.set(normalizedTitle, article);
       }
-      seen.add(normalizedTitle);
-      return true;
-    });
+    }
+    
+    return Array.from(articleMap.values());
   }
 }
 
-export default HinduScraper;
+export default ABCNewsScraper;

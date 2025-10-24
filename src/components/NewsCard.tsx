@@ -63,7 +63,7 @@ export default function NewsCard({ article }: NewsCardProps) {
         {/* Footer with source and date */}
         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
           <span className="text-xs text-gray-500">
-            The Hindu
+            ABC News
           </span>
           <span className="text-xs text-gray-400">
             {formatDate(article.scrapedAt)}

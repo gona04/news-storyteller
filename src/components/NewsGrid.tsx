@@ -157,8 +157,8 @@ export default function NewsGrid({ initialData }: NewsGridProps) {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         {/* Hero Section */}
         <div className="mb-16">
-          <h2 className="text-5xl sm:text-6xl font-bold text-gray-900 mb-4">
-            Stories from <span className="text-green-600">Today</span>
+          <h2 className="text-5xl sm:text-6xl font-light text-gray-900 mb-4">
+            Stories from <span className="text-green-600 font-semibold">Today</span>
           </h2>
           <p className="text-gray-600 text-lg max-w-2xl">
             Discover the most compelling news stories, beautifully presented and thoughtfully curated.
@@ -188,8 +188,8 @@ export default function NewsGrid({ initialData }: NewsGridProps) {
         {/* News grid */}
         {articles.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {articles.map((article) => (
-              <NewsCard key={article.id} article={article} />
+            {articles.map((article, index) => (
+              <NewsCard key={`${article.id}-${article.category}-${index}`} article={article} />
             ))}
           </div>
         ) : !loading && (
@@ -208,7 +208,7 @@ export default function NewsGrid({ initialData }: NewsGridProps) {
         {/* Footer */}
         <footer className="mt-16 pt-8 border-t border-gray-200 text-center text-gray-600 text-sm">
           <p>
-            📰 Data sourced from The Hindu • ⏰ Auto-refreshes daily at 6:00 AM
+            📰 Data sourced from ABC News • ⏰ Auto-refreshes daily at 6:00 AM
             {newsData?.data?.fromCache && ' • 💾 Showing cached data'}
           </p>
         </footer>
