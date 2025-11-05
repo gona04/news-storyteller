@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { initializeCrew } from "@/lib/crewai";
+import { initializeCrew } from "@/lib/ai-agents";
 import fs from "fs";
 import path from "path";
 
 // Cache directory for storing narration results
-const CACHE_DIR = path.join(process.cwd(), "cache", "crewai-narrator");
+const CACHE_DIR = path.join(process.cwd(), "cache", "ai-narrator");
 
 // Ensure cache directory exists
 if (!fs.existsSync(CACHE_DIR)) {
@@ -90,9 +90,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log("🚀 Starting Crew AI narration for:", news_link);
+    console.log("🚀 Starting AI narration for:", news_link);
 
-    // Initialize Crew AI
+    // Initialize AI agents
     const { crew } = initializeCrew(news_link);
 
     // Execute the crew
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Error in crewai-narrator API:", error);
+    console.error("Error in ai-narrator API:", error);
     return NextResponse.json(
       {
         success: false,
@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
       { status: 404 }
     );
   } catch (error) {
-    console.error("Error in crewai-narrator GET:", error);
+    console.error("Error in ai-narrator GET:", error);
     return NextResponse.json(
       {
         success: false,

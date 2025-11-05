@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
-import CrewAIPage from './crew-ai-client';
+import AIPage from './crew-ai-client';
 
-function CrewAILoading() {
+function AILoading() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
       <div className="text-center">
@@ -16,8 +16,8 @@ function CrewAILoading() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<CrewAILoading />}>
-      <CrewAIPage />
+    <Suspense fallback={<AILoading />}>
+      <AIPage />
     </Suspense>
   );
 }

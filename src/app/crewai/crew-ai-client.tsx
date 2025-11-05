@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Loader, Copy, Check, Sparkles, Volume2, Pause, Play } from 'lucide-react';
 
-interface CrewAIResult {
+interface AIResult {
   success: boolean;
   news_link: string;
   title: string;
@@ -13,11 +13,11 @@ interface CrewAIResult {
   timestamp: string;
 }
 
-export default function CrewAIPage() {
+export default function AIPage() {
   const searchParams = useSearchParams();
   const [newsLink, setNewsLink] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<CrewAIResult | null>(null);
+  const [result, setResult] = useState<AIResult | null>(null);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const [autoStarted, setAutoStarted] = useState(false);
@@ -61,7 +61,7 @@ export default function CrewAIPage() {
         throw new Error(errorData.details || 'Failed to process news');
       }
 
-      const data: CrewAIResult = await response.json();
+      const data: AIResult = await response.json();
       setResult(data);
       setNewsLink('');
     } catch (err) {
@@ -182,7 +182,7 @@ export default function CrewAIPage() {
                 <h1 className="text-2xl font-bold text-gray-900">
                   News <span className="font-normal">Storyteller</span>
                 </h1>
-                <p className="text-xs text-gray-600">Powered by Crew AI</p>
+                <p className="text-xs text-gray-600">Powered by AI</p>
               </div>
             </div>
             <nav className="flex space-x-6">
@@ -197,7 +197,7 @@ export default function CrewAIPage() {
       <div className="max-w-4xl mx-auto px-4 py-12">
         <div className="mb-12 text-center">
           <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
-            Transform News with <span className="text-green-600">Crew AI</span>
+            Transform News with <span className="text-green-600">AI</span>
           </h2>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
             Enter a news article URL and watch as our AI agents transform it into a Tolstoy-inspired literary narrative.
@@ -251,7 +251,7 @@ export default function CrewAIPage() {
                 <div className="absolute inset-0 border-4 border-gray-200 border-t-green-600 rounded-full animate-spin"></div>
               </div>
               <div>
-                <p className="text-gray-900 font-semibold">Crew AI Processing</p>
+                <p className="text-gray-900 font-semibold">AI Processing</p>
                 <p className="text-gray-600 text-sm">History Research Agent is working...</p>
               </div>
             </div>

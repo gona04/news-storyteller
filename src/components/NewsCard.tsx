@@ -27,7 +27,7 @@ export default function NewsCard({ article }: NewsCardProps) {
   };
 
   const handleCardClick = () => {
-    // Navigate to Crew AI page with the article URL as a query parameter
+    // Navigate to AI Storyteller page with the article URL as a query parameter
     const encodedUrl = encodeURIComponent(article.url);
     router.push(`/crewai?news_link=${encodedUrl}`);
   };
@@ -73,7 +73,7 @@ export default function NewsCard({ article }: NewsCardProps) {
         {/* Storyteller hint */}
         <div className="flex items-center justify-center pt-2 border-t border-gray-100">
           <span className="text-xs text-green-600 font-medium flex items-center gap-1">
-            ✨ Click to transform with Crew AI
+            ✨ Click to transform with AI
           </span>
         </div>
       </div>

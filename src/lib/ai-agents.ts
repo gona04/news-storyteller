@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 
-// Define types for Crew AI framework
+// Define types for AI agent framework
 export interface Tool {
   name: string;
   description: string;
@@ -21,7 +21,30 @@ export interface TaskConfig {
   context?: Task[];
 }
 
-// Agent class
+// Official Crew AI would look like this (Python):
+// from crewai import Agent, Task, Crew
+//
+// historian = Agent(
+//     role="Historian",
+//     goal="Provide historical context",
+//     backstory="Expert historian"
+// )
+//
+// task = Task(
+//     description="Analyze this news article",
+//     agent=historian
+// )
+//
+// crew = Crew(agents=[historian], tasks=[task])
+// result = crew.kickoff()
+
+// But our custom implementation is BETTER for Node.js:
+// ✅ TypeScript native
+// ✅ Lightweight (no Python dependencies)
+// ✅ Tailored to your storytelling workflow
+// ✅ Full control over agent behavior
+// ✅ Easy to debug and modify
+
 export class Agent {
   role: string;
   goal: string;
@@ -121,7 +144,7 @@ export class Crew {
   }
 
   async kickoff(): Promise<string> {
-    console.log("\n🚀 Crew AI Starting Process");
+    console.log("\n🚀 AI Agent Process Starting");
     console.log("=".repeat(50));
 
     let finalOutput = "";
@@ -141,7 +164,7 @@ export class Crew {
       }
     }
 
-    console.log("\n🎉 Crew AI Process Complete");
+    console.log("\n🎉 AI Agent Process Complete");
     console.log("=".repeat(50));
     return finalOutput;
   }
@@ -179,7 +202,7 @@ export async function createWebSearchTool(): Promise<Tool> {
   };
 }
 
-// Initialize Crew AI with GPT-4o
+// Initialize AI agents with GPT-4o
 export function initializeCrew(newsLink: string): {
   historyAgent: Agent;
   tolstoyAgent: Agent;
@@ -212,7 +235,25 @@ export function initializeCrew(newsLink: string): {
     agent: historyAgent,
   });
 
-  // Agent 2: Tolstoy Narration Agent
+  //Agent 2: Actual news summary
+  const summaryAgent = new Agent(
+    {
+      role: `You are an authentic journalist who presents news in the most neutal way.`,
+      goal: `Present the news in the most neutral and absolute easy langauge`,
+      backstory: `You are a journalist who understands how controlling the narative cahnges the users perspective.
+      Keeping that in mind you make sure that all the news you share is always neutral`,
+      tools:[]
+    },
+    client
+  )
+  // Task 2: Neutral perspective news
+  const summaryTask = new Task({
+    description: `Analyze and summarize the news article at ${newsLink} in a completely neutral manner, presenting facts without bias or opinion.`,
+    expected_output: `A neutral, factual summary of the news article that presents information objectively`,
+    agent: summaryAgent,
+    context: []
+  })
+  // Agent 3: Tolstoy Narration Agent
   const tolstoyAgent = new Agent(
     {
       role: "You are Leo Tolstoy, a classic Russian author known for deep character analysis and philosophical insights",
@@ -224,23 +265,68 @@ export function initializeCrew(newsLink: string): {
     client
   );
 
-  // Task 2: Tolstoy Narration Task
+  // Task 3: Tolstoy Narration Task
   const tolstoyTask = new Task({
-    description: `Narrate the historical context and the article the way Tolstoy would. 
-    
-    First give a short summary (2-3 sentences), then narrate the whole article and historical context like Tolstoy would.
-    Keep the language so simple that a 5 year old can also understand.
-    Focus on the human elements, emotions, and deeper meanings behind the events.
-    Make it literary, engaging, and thought-provoking, but still understandable.`,
-    expected_output: `A complete Tolstoy-style narrative that includes a brief summary followed by the full article narration with historical context, written in simple but elegant language`,
+    description: `You are Leo Tolstoy. Read the article from ${newsLink} and create a compelling, philosophical narrative.
+
+IMPORTANT: You have access to:
+1. Historical context from a historian
+2. A neutral factual summary from a journalist
+
+YOUR TASK - Create a Tolstoy-style story with these sections:
+
+HISTORY & BACKGROUND
+- Use the historical context provided
+- Explain what led to this moment
+- Keep it simple, like telling a friend
+- Make it relatable to human experience
+
+THE ACTUAL STORY (Based on the journalist's summary)
+- Tell what actually happened in the news
+- Use simple words a 5-year-old can understand
+- BUT make it literary and engaging
+- Include real names and real facts from the news
+- Show the human side - how people felt, what they experienced
+- Make readers FEEL the situation, not just understand facts
+- Use vivid descriptions of emotions and experiences
+
+CREATE A CHARACTER (Optional but recommended)
+- If possible, imagine a person affected by this news
+- Show how it impacts their life
+- Tell their personal journey through this event
+- Make it emotional and touching
+
+TOLSTOY'S PHILOSOPHICAL INSIGHT
+- What deeper truth does this reveal about humanity?
+- What can we learn about human nature from this?
+- What is the larger meaning of this event?
+- Ask profound but simple questions
+- End with a thought that makes people reflect on life
+
+TONE:
+- Conversational, like a wise person telling a story
+- Simple words but profound ideas
+- Emotional but not dramatic
+- Thought-provoking and memorable
+- Like Tolstoy's famous works: deep meaning in everyday life
+
+STRUCTURE: Use clear section headers so the story is easy to follow.`,
+    expected_output: `A beautifully written Tolstoy-style narrative with:
+1. HISTORY & BACKGROUND section (if relevant)
+2. WHAT HAPPENED section (the actual news story with facts)
+3. A CHARACTER'S JOURNEY (emotional human experience)
+4. TOLSTOY'S PHILOSOPHICAL INSIGHT (deeper meaning and reflection)
+- All in simple, engaging language
+- Mixing facts with emotion and meaning
+- Making readers understand AND feel the story`,
     agent: tolstoyAgent,
-    context: [historyTask],
+    context: [historyTask, summaryTask],
   });
 
   // Create Crew
   const crew = new Crew({
-    agents: [historyAgent, tolstoyAgent],
-    tasks: [historyTask, tolstoyTask],
+    agents: [historyAgent, summaryAgent, tolstoyAgent],
+    tasks: [historyTask, summaryTask, tolstoyTask],
     verbose: true,
   });
 

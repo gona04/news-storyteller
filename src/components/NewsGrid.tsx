@@ -15,9 +15,24 @@ export default function NewsGrid({ initialData }: NewsGridProps) {
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [allArticles, setAllArticles] = useState<NewsArticle[]>([]);
 
-  // Available categories
-  const categories: Category[] = ['All', 'National', 'International', 'Business', 'Cities', 'Technology', 'Sports', 'General'];
+  // Get all unique categories from full dataset (not filtered)
+  const getAllCategories = (): Category[] => {
+    if (!allArticles || allArticles.length === 0) return ['All'];
+    
+    const uniqueCategories = new Set<string>();
+    allArticles.forEach(article => {
+      if (article.category) {
+        uniqueCategories.add(article.category);
+      }
+    });
+    
+    const sortedCategories = Array.from(uniqueCategories).sort();
+    return ['All', ...sortedCategories] as Category[];
+  };
+
+  const categories: Category[] = getAllCategories();
 
   // Fetch news data
   const fetchNews = async (category?: Category, forceRefresh = false) => {
@@ -26,9 +41,7 @@ export default function NewsGrid({ initialData }: NewsGridProps) {
       setError(null);
 
       const params = new URLSearchParams();
-      if (category && category !== 'All') {
-        params.append('category', category);
-      }
+      // Don't filter by category when fetching - get all articles
       if (forceRefresh) {
         params.append('refresh', 'true');
       }
@@ -38,6 +51,8 @@ export default function NewsGrid({ initialData }: NewsGridProps) {
 
       if (data.success) {
         setNewsData(data);
+        // Store all articles for category generation
+        setAllArticles(data.data?.articles || []);
       } else {
         setError(data.error || 'Failed to fetch news');
       }
@@ -118,6 +133,15 @@ export default function NewsGrid({ initialData }: NewsGridProps) {
   const articles = newsData?.data?.articles || [];
   const cacheInfo = newsData?.data?.cacheInfo;
 
+  // Filter articles based on selected category
+  const getFilteredArticles = (): NewsArticle[] => {
+    if (!articles) return [];
+    if (selectedCategory === 'All') return articles;
+    return articles.filter(article => article.category === selectedCategory);
+  };
+
+  const filteredArticles = getFilteredArticles();
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -163,6 +187,28 @@ export default function NewsGrid({ initialData }: NewsGridProps) {
           <p className="text-gray-600 text-lg max-w-2xl">
             Discover the most compelling news stories, beautifully presented and thoughtfully curated.
           </p>
+
+          {/* Category Filter Pills */}
+          <div className="mt-8 flex flex-wrap gap-3">
+            {categories.map((category) => (
+              <button
+                key={category}
+                onClick={() => handleCategoryChange(category)}
+                className={`px-5 py-2 rounded-full font-medium text-sm transition-all duration-200 whitespace-nowrap ${
+                  selectedCategory === category
+                    ? 'bg-green-600 text-white shadow-lg hover:bg-green-700'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {category}
+                {articleCounts[category] && (
+                  <span className="ml-2 text-xs opacity-75">
+                    ({articleCounts[category]})
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Error message */}
@@ -188,7 +234,7 @@ export default function NewsGrid({ initialData }: NewsGridProps) {
         {/* News grid */}
         {articles.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {articles.map((article, index) => (
+            {filteredArticles.map((article, index) => (
               <NewsCard key={`${article.id}-${article.category}-${index}`} article={article} />
             ))}
           </div>
