@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initializeCrew } from "@/lib/ai-agents";
+import { scrapeArticle } from "@/lib/article-scraper";
 import fs from "fs";
 import path from "path";
 
@@ -11,12 +12,15 @@ if (!fs.existsSync(CACHE_DIR)) {
   fs.mkdirSync(CACHE_DIR, { recursive: true });
 }
 
-// Generate a cache key from the news link
-function getCacheKey(newsLink: string): string {
-  // Simple hash function for URL
+// Generate a cache key from the news link and article content
+function getCacheKey(newsLink: string, articleContent?: string): string {
+  // Create a hash from both URL and content preview
+  const contentPreview = articleContent ? articleContent.substring(0, 500) : '';
+  const combined = `${newsLink}|${contentPreview}`;
+
   let hash = 0;
-  for (let i = 0; i < newsLink.length; i++) {
-    const char = newsLink.charCodeAt(i);
+  for (let i = 0; i < combined.length; i++) {
+    const char = combined.charCodeAt(i);
     hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32bit integer
   }
@@ -46,13 +50,9 @@ function getCachedNarration(newsLink: string): {
   return { success: false };
 }
 
-// Save narration to cache
-function saveToCache(
-  newsLink: string,
-  data: any
-): { success: boolean; error?: string } {
+// Save narration to cache with specific key
+function saveToCacheWithKey(cacheKey: string, data: any): { success: boolean; error?: string } {
   try {
-    const cacheKey = getCacheKey(newsLink);
     const cachePath = path.join(CACHE_DIR, cacheKey);
 
     fs.writeFileSync(cachePath, JSON.stringify(data, null, 2));
@@ -92,26 +92,42 @@ export async function POST(request: NextRequest) {
 
     console.log("🚀 Starting AI narration for:", news_link);
 
-    // Initialize AI agents
-    const { crew } = initializeCrew(news_link);
+    // First, scrape the article content
+    console.log("📄 Scraping article content...");
+    const articleData = await scrapeArticle(news_link);
+
+    if (!articleData.success || !articleData.content) {
+      return NextResponse.json({
+        success: false,
+        details: "Failed to scrape article content. The article may be behind a paywall or unavailable.",
+        error: articleData.error
+      }, { status: 400 });
+    }
+
+    console.log(`📝 Article scraped: "${articleData.title}" (${articleData.content.length} chars)`);
+
+    // Initialize AI agents with the actual article content
+    const { crew } = initializeCrew(news_link, articleData.content, articleData.title);
 
     // Execute the crew
     const tolstoyNarration = await crew.kickoff();
 
-    // Extract title from the URL or use a default
+    // Extract title from scraped article or use a default
     const urlObj = new URL(news_link);
-    const title = urlObj.hostname.split(".")[0] || "News Article";
+    const title = articleData.title || urlObj.hostname.split(".")[0] || "News Article";
 
     const result = {
       success: true,
       news_link,
-      title: `${title} - Tolstoy's Narrative`,
-      tolstoy_narration: tolstoyNarration,
+      title: `${title} - Roald Dahl's Narrative`,
+      roald_dahl_narration: tolstoyNarration,
+      article_content: articleData.content.substring(0, 1000) + (articleData.content.length > 1000 ? '...' : ''), // Include preview of article content
       timestamp: new Date().toISOString(),
     };
 
-    // Save to cache
-    saveToCache(news_link, result);
+    // Save to cache with content-based key
+    const cacheKey = getCacheKey(news_link, articleData.content);
+    saveToCacheWithKey(cacheKey, result);
 
     return NextResponse.json(result);
   } catch (error) {

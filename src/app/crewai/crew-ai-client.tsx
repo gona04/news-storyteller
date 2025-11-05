@@ -8,7 +8,7 @@ interface AIResult {
   success: boolean;
   news_link: string;
   title: string;
-  tolstoy_narration: string;
+  roald_dahl_narration: string;
   cached: boolean;
   timestamp: string;
 }
@@ -78,7 +78,7 @@ export default function AIPage() {
 
   const handleCopy = () => {
     if (result) {
-      navigator.clipboard.writeText(result.tolstoy_narration);
+      navigator.clipboard.writeText(result.roald_dahl_narration);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -98,7 +98,7 @@ export default function AIPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: result.tolstoy_narration,
+          text: result.roald_dahl_narration,
         }),
       });
 
@@ -200,7 +200,7 @@ export default function AIPage() {
             Transform News with <span className="text-green-600">AI</span>
           </h2>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Enter a news article URL and watch as our AI agents transform it into a Tolstoy-inspired literary narrative.
+            Enter a news article URL and watch as our AI agents transform it into a Roald Dahl-inspired children's story.
           </p>
         </div>
 
@@ -285,7 +285,7 @@ export default function AIPage() {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-green-600" />
-                  Tolstoy's Narrative
+                  Roald Dahl's Narrative
                 </h3>
                 <div className="flex items-center gap-2">
                   {/* Voice Over Button */}
@@ -347,7 +347,7 @@ export default function AIPage() {
 
               <div className="prose prose-sm max-w-none">
                 <div className="text-gray-700 text-sm sm:text-base leading-relaxed space-y-4">
-                  {result.tolstoy_narration.split('\n\n').map((paragraph, idx) => (
+                  {result.roald_dahl_narration.split('\n\n').map((paragraph, idx) => (
                     <p key={idx} className="text-justify">
                       {paragraph}
                     </p>
@@ -396,7 +396,7 @@ export default function AIPage() {
 
         {!result && !loading && (
           <div className="text-center py-12 text-gray-600">
-            <p className="text-sm sm:text-base">Enter a news link and click Generate to transform it into a Tolstoy-inspired narrative</p>
+            <p className="text-sm sm:text-base">Enter a news link and click Generate to transform it into a Roald Dahl-inspired children's story</p>
           </div>
         )}
       </div>

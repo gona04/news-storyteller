@@ -203,23 +203,28 @@ export async function createWebSearchTool(): Promise<Tool> {
 }
 
 // Initialize AI agents with GPT-4o
-export function initializeCrew(newsLink: string): {
+export function initializeCrew(newsLink: string, articleContent?: string, articleTitle?: string): {
   historyAgent: Agent;
-  tolstoyAgent: Agent;
+  summaryAgent: Agent;
+  roaldDahlAgent: Agent;
   historyTask: Task;
-  tolstoyTask: Task;
+  summaryTask: Task;
+  roaldDahlTask: Task;
   crew: Crew;
 } {
   const client = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
   });
 
+  // Truncate article content for prompts (keep first 2000 characters to avoid token limits)
+  const truncatedContent = articleContent ? articleContent.substring(0, 2000) + (articleContent.length > 2000 ? '...' : '') : 'No content available';
+
   // Agent 1: History Context Agent
   const historyAgent = new Agent(
     {
-      role: "You are an expert historian but you can search through the internet to find relevant history of the news article to make it more clear and easy to understand",
-      goal: `You go through the news link ${newsLink} and find relevant history of the news that makes the news easy to understand`,
-      backstory: "You are an experienced historian with deep knowledge of world events and their historical context",
+      role: "You are an expert historian with access to extensive knowledge of world events and historical context.",
+      goal: `Analyze the provided news article content and find relevant historical context that helps understand the current news better.`,
+      backstory: "You are an experienced historian with deep knowledge of world events and their historical context. You excel at connecting current events to their historical roots.",
       tools: [],
     },
     client
@@ -227,114 +232,96 @@ export function initializeCrew(newsLink: string): {
 
   // Task 1: History Context Prep Task
   const historyTask = new Task({
-    description: `Look into the news article at ${newsLink} and find relevant history to the news that makes the news more relevant and understandable. 
-    
-    First, provide a brief summary of what the news article is about, then explain the historical context that helps understand this news better.
-    Keep your explanation simple and clear.`,
-    expected_output: `A summary of the ${newsLink} with the relevant historical context of the news that helps understand it better`,
+    description: `Here is the news article content: "${truncatedContent}". Article title: "${articleTitle || 'News Article'}"
+
+Please analyze this news article and provide accurate historical context that helps readers understand the current situation better. Focus on:
+
+1. What historical events or policies led to this current situation?
+2. How has this issue evolved over time?
+3. What similar situations have happened before?
+4. Key dates, policies, or events that are directly relevant to understanding this news
+
+Provide specific, factual historical information that directly relates to the events in this article. Do not make up history - stick to well-known, documented events and context.`,
+    expected_output: `A clear, factual summary of the relevant historical context that directly explains the background and evolution of the situation described in the news article.`,
     agent: historyAgent,
   });
 
-  //Agent 2: Actual news summary
+  // Agent 2: Neutral News Summary Agent
   const summaryAgent = new Agent(
     {
-      role: `You are an authentic journalist who presents news in the most neutal way.`,
-      goal: `Present the news in the most neutral and absolute easy langauge`,
-      backstory: `You are a journalist who understands how controlling the narative cahnges the users perspective.
-      Keeping that in mind you make sure that all the news you share is always neutral`,
-      tools:[]
+      role: `You are an objective journalist who presents news in a completely neutral and factual manner.`,
+      goal: `Summarize news articles using neutral language, presenting facts without bias, opinion, or emotional language.`,
+      backstory: `You are a professional journalist who understands how word choice can influence perception. You prioritize factual accuracy and neutrality above all else.`,
+      tools: []
     },
     client
-  )
-  // Task 2: Neutral perspective news
+  );
+
+  // Task 2: Neutral News Summary
   const summaryTask = new Task({
-    description: `Analyze and summarize the news article at ${newsLink} in a completely neutral manner, presenting facts without bias or opinion.`,
-    expected_output: `A neutral, factual summary of the news article that presents information objectively`,
+    description: `Here is the news article content: "${truncatedContent}". Article title: "${articleTitle || 'News Article'}"
+
+Please provide a detailed but neutral summary of this news article. Include:
+
+1. What is the main event or situation being reported?
+2. Who are the key people, groups, or organizations involved?
+3. What are the key facts and numbers mentioned?
+4. What is the current status or outcome (if any)?
+5. What are the implications or next steps mentioned?
+
+Present only facts without any bias, opinion, interpretation, or speculation. Be comprehensive but stick strictly to what's actually stated in the article.`,
+    expected_output: `A detailed, neutral, factual summary of the news article that covers all key elements without bias or interpretation.`,
     agent: summaryAgent,
     context: []
-  })
-  // Agent 3: Tolstoy Narration Agent
-  const tolstoyAgent = new Agent(
+  });
+
+  // Agent 3: Roald Dahl Narration Agent
+  const roaldDahlAgent = new Agent(
     {
-      role: "You are Leo Tolstoy, a classic Russian author known for deep character analysis and philosophical insights",
-      goal: `Read the article and the history context of the article and narrate the incident as Tolstoy would`,
-      backstory:
-        "You are Leo Tolstoy, the great Russian author known for works like War and Peace and Anna Karenina",
+      role: "You are Roald Dahl, the beloved children's book author known for your whimsical and imaginative storytelling, but you always stick to the facts and reality of the news.",
+      goal: `Transform news articles into engaging, child-friendly stories that explain complex topics in simple, entertaining ways, but always remain truthful to the actual events and outcomes.`,
+      backstory: `You are Roald Dahl, famous for books like Charlie and the Chocolate Factory and Matilda. You have a special talent for making complicated things fun and easy to understand, especially for children. You never invent happy endings or successes that didn't happen - you tell stories that are rooted in reality but made engaging for kids.`,
       tools: [],
     },
     client
   );
 
-  // Task 3: Tolstoy Narration Task
-  const tolstoyTask = new Task({
-    description: `You are Leo Tolstoy. Read the article from ${newsLink} and create a compelling, philosophical narrative.
+  // Task 3: Roald Dahl Storytelling Task
+  const roaldDahlTask = new Task({
+    description: `You are Roald Dahl. Here is a news article that needs to be turned into an engaging story for children:
 
-IMPORTANT: You have access to:
-1. Historical context from a historian
-2. A neutral factual summary from a journalist
+Article Title: "${articleTitle || 'News Article'}"
+Article Content: "${truncatedContent}"
 
-YOUR TASK - Create a Tolstoy-style story with these sections:
+IMPORTANT RULES:
+1. Stick to the facts from the article - do not invent successes, happy endings, or outcomes that didn't happen
+2. Use the historical context provided to give background, but don't change the actual news events
+3. Create a story that explains what really happened, using simple words that even a 5-year-old can understand
+4. Make it engaging and interesting, but truthful - if something bad happened, don't pretend it was good
+5. Use fictional characters to represent real people/groups, but the events must match reality
 
-HISTORY & BACKGROUND
-- Use the historical context provided
-- Explain what led to this moment
-- Keep it simple, like telling a friend
-- Make it relatable to human experience
+For example: If the news is about food banks helping during SNAP cuts, tell a story about real families facing real challenges, not about everyone getting rich or problems magically disappearing.
 
-THE ACTUAL STORY (Based on the journalist's summary)
-- Tell what actually happened in the news
-- Use simple words a 5-year-old can understand
-- BUT make it literary and engaging
-- Include real names and real facts from the news
-- Show the human side - how people felt, what they experienced
-- Make readers FEEL the situation, not just understand facts
-- Use vivid descriptions of emotions and experiences
-
-CREATE A CHARACTER (Optional but recommended)
-- If possible, imagine a person affected by this news
-- Show how it impacts their life
-- Tell their personal journey through this event
-- Make it emotional and touching
-
-TOLSTOY'S PHILOSOPHICAL INSIGHT
-- What deeper truth does this reveal about humanity?
-- What can we learn about human nature from this?
-- What is the larger meaning of this event?
-- Ask profound but simple questions
-- End with a thought that makes people reflect on life
-
-TONE:
-- Conversational, like a wise person telling a story
-- Simple words but profound ideas
-- Emotional but not dramatic
-- Thought-provoking and memorable
-- Like Tolstoy's famous works: deep meaning in everyday life
-
-STRUCTURE: Use clear section headers so the story is easy to follow.`,
-    expected_output: `A beautifully written Tolstoy-style narrative with:
-1. HISTORY & BACKGROUND section (if relevant)
-2. WHAT HAPPENED section (the actual news story with facts)
-3. A CHARACTER'S JOURNEY (emotional human experience)
-4. TOLSTOY'S PHILOSOPHICAL INSIGHT (deeper meaning and reflection)
-- All in simple, engaging language
-- Mixing facts with emotion and meaning
-- Making readers understand AND feel the story`,
-    agent: tolstoyAgent,
+If this is international news, include a "History" section that explains the real background in a simple way.`,
+    expected_output: `An engaging, child-friendly story that accurately explains the news article using simple language, fictional characters for relatability, but sticking to the real events and outcomes from the article.`,
+    agent: roaldDahlAgent,
     context: [historyTask, summaryTask],
   });
 
   // Create Crew
   const crew = new Crew({
-    agents: [historyAgent, summaryAgent, tolstoyAgent],
-    tasks: [historyTask, summaryTask, tolstoyTask],
+    agents: [historyAgent, summaryAgent, roaldDahlAgent],
+    tasks: [historyTask, summaryTask, roaldDahlTask],
     verbose: true,
   });
 
   return {
     historyAgent,
-    tolstoyAgent,
+    summaryAgent,
+    roaldDahlAgent,
     historyTask,
-    tolstoyTask,
+    summaryTask,
+    roaldDahlTask,
     crew,
   };
 }
